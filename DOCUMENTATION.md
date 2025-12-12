@@ -231,10 +231,11 @@ Load testing and functional testing script that generates traces to verify the O
 
 #### Base Configuration
 ```python
-BASE_URL = "http://localhost:8000"
+# The script uses an environment override so runners can target other hosts
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 ```
-- Points to the Flask app
-- Uses Docker network DNS (http://python-app:8000) when running in container
+- Points to the Flask app. When running the runner in Docker the recommended value is `http://python-app:8000` (Docker service DNS).
+- You can override `BASE_URL` using an environment variable when running the script or via `docker-compose`.
 
 #### Test Functions
 
@@ -414,6 +415,7 @@ CMD ["python", "app.py"]
 - Runs the Flask app when container starts
 - Python runs in unbuffered mode (good for logging)
 
+
 ### Build Optimization
 - Multi-layer structure optimizes cache usage
 - Requirements installed before app code
@@ -421,6 +423,36 @@ CMD ["python", "app.py"]
 - Slim image reduces download size and security surface
 
 ---
+
+## Test Runner
+
+A lightweight containerized test runner was added to allow generating traces on demand. It includes:
+
+- `Dockerfile.runner` — image for the runner based on `python:3.11-slim` that installs `requirements.txt` and copies the test script.
+- `run_test_loop.sh` — the entrypoint script for the runner; by default it runs `python test_app.py` once and exits. This allows running traces only when desired.
+
+Compose integration:
+
+- Service name: `test_runner` in `docker-compose.yml`.
+- Environment: `BASE_URL` is set to `http://python-app:8000` in the compose file so the runner targets the `python-app` service on the same network.
+- The runner is intended to be run on-demand (it exits after a single run). To run the runner use the commands below.
+
+Usage examples:
+
+```bash
+# Build the runner image
+docker-compose build test_runner
+
+# Run once and remove the container after exit
+docker-compose run --rm test_runner
+
+# Or start the service (it will run once and exit)
+docker-compose up --build -d test_runner
+```
+
+Notes:
+- If you prefer an automated loop generating traces continuously, `run_test_loop.sh` can be modified to include a `sleep` loop.
+- The runner respects the `BASE_URL` env var; you can override it to target a different host: `docker-compose run --rm -e BASE_URL=http://host:8000 test_runner`.
 
 ## docker-compose.yml Documentation
 
@@ -593,9 +625,23 @@ Expected response:
 ```
 
 ### Step 6: Generate Traces
+
+Run locally:
 ```bash
 pip install requests
 python test_app.py
+```
+
+Run via the containerized test runner (recommended for compose setups):
+```bash
+# Build runner image
+docker-compose build test_runner
+
+# Run once and remove container after exit
+docker-compose run --rm test_runner
+
+# Or start the service (it will run once and exit)
+docker-compose up --build -d test_runner
 ```
 
 ### Step 7: View Traces
@@ -794,6 +840,6 @@ gauge.callback(lambda obs: obs.observe(42))
 
 ---
 
-**Last Updated**: December 2024  
+**Last Updated**: December 12, 2025  
 **Version**: 1.0  
 **Status**: Production Ready
