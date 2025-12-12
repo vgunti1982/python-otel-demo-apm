@@ -27,6 +27,18 @@ services:
     networks:
       - otel-network
 
+  test_runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.runner
+    environment:
+      - BASE_URL=http://python-app:8000
+    depends_on:
+      - python-app
+      - jaeger
+    networks:
+      - otel-network
+
 networks:
   otel-network:
     driver: bridge

@@ -7,9 +7,11 @@ Run this after starting the containers
 import requests
 import time
 import sys
+import os
 from concurrent.futures import ThreadPoolExecutor
 
-BASE_URL = "http://localhost:8000"
+# Allow overriding the target app URL via environment for containerized runs
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 def test_index():
     """Test the index endpoint"""
