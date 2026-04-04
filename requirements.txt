@@ -7,3 +7,6 @@ opentelemetry-instrumentation-requests==0.42b0
 opentelemetry-instrumentation-sqlalchemy==0.42b0
 sqlalchemy==2.0.23
 requests==2.31.0
+
+
+
